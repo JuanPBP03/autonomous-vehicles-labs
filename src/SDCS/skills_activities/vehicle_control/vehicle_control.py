@@ -48,7 +48,7 @@ K_i = 1.8
 # - nodeSequence: list of nodes from roadmap. Used for trajectory generation.
 enableSteeringControl = True
 K_stanley = 1
-nodeSequence = [0, 20, 0]
+nodeSequence = [10, 6, 10]
 
 #endregion
 # -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
@@ -91,10 +91,10 @@ class SpeedController:
     # ==============  SECTION A -  Speed Control  ====================
     def update(self, v, v_ref, dt):
         error  = v_ref - v
-        self.ei = error *dt
+        self.ei += error *dt
         u = self.kp*error + self.ki*self.ei
-        u = np.clip(u, -self.maxThrottle,self.maxThrottle)
-        return 0
+        u = np.clip(u, -self.maxThrottle, self.maxThrottle)
+        return u
 
 class SteeringController:
 
@@ -115,19 +115,32 @@ class SteeringController:
     def update(self, p, th, speed):
         wp_1 = self.wp[:, np.mod(self.wpi, self.N-1)]
         wp_2 = self.wp[:, np.mod(self.wpi+1, self.N-1)]
-        path_vec = wp_2-wp_1
-        path_mag = np.linalg.norm(path_vec)
-        path_unit = path_vec/path_mag
-        path_angle = np.arctan2(path_vec[0]/path_vec[1])
-        pos_vec = p - wp_1
-        CT_vec = np.dot(pos_vec,path_unit)*path_unit
-        CT_mag = np.linalg.norm(CT_vec)
+        
+        path_vec = wp_2-wp_1 # vector from wp_1 to wp_2
+        path_mag = np.linalg.norm(path_vec) # magnitude of path vector
+        path_unit = path_vec/path_mag # unit vector of path vector
+        path_angle = np.arctan2(path_vec[1],path_vec[0]) # angle of path vector
+        
+        pos_vec = p - wp_1 # vector from wp_1 to vehicle
+
+        CT_mag = np.dot(pos_vec,path_unit) # magnitude of closest point on path to vehicle
+        CT_vec = CT_mag*path_unit # vector from wp_1 to closest point on path to vehicle
         
         if CT_mag > path_mag:
-            wpi += 1
+            self.wpi += 1
             return 0; 
+        CTE_vec = pos_vec - CT_vec # vector from closest point on path to vehicle
         
-        return 0
+        CTE_mag = np.linalg.norm(CTE_vec) # magnitude of cte_vec
+        CTE_heading = np.arctan2(CTE_vec[1],CTE_vec[0])# heading of CTE vector
+        CTE_heading_error = wrap_to_pi(CTE_heading - path_angle) # heading error of CTE vector
+        CTE = CTE_mag*np.sign(CTE_heading_error) # signed cross track error
+        
+        heading_error = wrap_to_pi(th - path_angle) # heading error of vehicle
+        steering_command = np.clip(heading_error + np.arctan2(speed+0.0001,self.k*CTE), -self.maxSteeringAngle, self.maxSteeringAngle)
+
+
+        return steering_command
 
 def controlLoop():
     #region controlLoop setup
