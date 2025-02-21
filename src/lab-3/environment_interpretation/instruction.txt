@@ -1,0 +1,3 @@
+1. In the class OccupancyGrid, please locate the lines with "Fill in your code here".
+2. Replace "Fill in your code here" with your code.
+3. Uncomment the lines.
