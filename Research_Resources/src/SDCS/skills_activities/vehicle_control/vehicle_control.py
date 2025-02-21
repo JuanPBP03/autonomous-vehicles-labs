@@ -115,9 +115,18 @@ class SteeringController:
     def update(self, p, th, speed):
         wp_1 = self.wp[:, np.mod(self.wpi, self.N-1)]
         wp_2 = self.wp[:, np.mod(self.wpi+1, self.N-1)]
-        '''
-        Implement Your Steering Controller Here
-        '''
+        path_vec = wp_2-wp_1
+        path_mag = np.linalg.norm(path_vec)
+        path_unit = path_vec/path_mag
+        path_angle = np.arctan2(path_vec[0]/path_vec[1])
+        pos_vec = p - wp_1
+        CT_vec = np.dot(pos_vec,path_unit)*path_unit
+        CT_mag = np.linalg.norm(CT_vec)
+        
+        if CT_mag > path_mag:
+            wpi += 1
+            return 0; 
+        
         return 0
 
 def controlLoop():
