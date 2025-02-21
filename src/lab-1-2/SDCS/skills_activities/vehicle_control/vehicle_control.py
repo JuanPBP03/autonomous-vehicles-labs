@@ -121,18 +121,19 @@ class SteeringController:
         path_unit = path_vec/path_mag # unit vector of path vector
         path_angle = np.arctan2(path_vec[1],path_vec[0]) # angle of path vector
         
-        pos_vec = p - wp_1 # vector from wp_1 to vehicle
+        pos_vec = p - wp_1 # vector from wp_1 to vehicle, ap
 
-        CT_mag = np.dot(pos_vec,path_unit) # magnitude of closest point on path to vehicle
-        CT_vec = CT_mag*path_unit # vector from wp_1 to closest point on path to vehicle
+        CT_mag = np.dot(pos_vec,path_unit) # magnitude of closest point on path to vehicle, mag ac
+        CT_vec = CT_mag*path_unit # vector from wp_1 to closest point on path to vehicle, ac
         
         if CT_mag > path_mag:
             self.wpi += 1
             return 0; 
-        CTE_vec = pos_vec - CT_vec # vector from closest point on path to vehicle
-        
-        CTE_mag = np.linalg.norm(CTE_vec) # magnitude of cte_vec
-        CTE_heading = np.arctan2(CTE_vec[1],CTE_vec[0])# heading of CTE vector
+        C_vec = wp_1 + CT_vec # Absolute vector c
+        PC = C_vec - p 
+        CTE_mag = np.linalg.norm(PC) # magnitude of PC/CTE vector
+
+        CTE_heading = np.arctan2(PC[1],PC[0])# heading of CTE vector
         CTE_heading_error = wrap_to_pi(CTE_heading - path_angle) # heading error of CTE vector
         CTE = CTE_mag*np.sign(CTE_heading_error) # signed cross track error
         
