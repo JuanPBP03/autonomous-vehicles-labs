@@ -39,16 +39,16 @@ controllerUpdateRate = 100
 # - K_p: proportional gain for speed controller
 # - K_i: integral gain for speed controller
 v_ref = 0.5
-K_p = 3
-K_i = 5.8
+K_p = 0.26
+K_i = 1.8
 
 # ===== Steering Controller Parameters
 # - enableSteeringControl: whether or not to enable steering control
 # - K_stanley: K gain for stanley controller
 # - nodeSequence: list of nodes from roadmap. Used for trajectory generation.
-enableSteeringControl = False
+enableSteeringControl = True
 K_stanley = 1
-nodeSequence = [10, 6, 10]
+nodeSequence = [0, 20, 0]
 
 #endregion
 # -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
@@ -90,12 +90,11 @@ class SpeedController:
 
     # ==============  SECTION A -  Speed Control  ====================
     def update(self, v, v_ref, dt):
-        
-        error  = v_ref-v
-        proportion = error
-        self.ei = self.ei + error*dt
-        
-        return proportion*self.kp + self.ei*self.ki
+        error  = v_ref - v
+        self.ei = error *dt
+        u = self.kp*error + self.ki*self.ei
+        u = np.clip(u, -self.maxThrottle,self.maxThrottle)
+        return 0
 
 class SteeringController:
 
@@ -116,9 +115,18 @@ class SteeringController:
     def update(self, p, th, speed):
         wp_1 = self.wp[:, np.mod(self.wpi, self.N-1)]
         wp_2 = self.wp[:, np.mod(self.wpi+1, self.N-1)]
-        '''
-        Implement Your Steering Controller Here
-        '''
+        path_vec = wp_2-wp_1
+        path_mag = np.linalg.norm(path_vec)
+        path_unit = path_vec/path_mag
+        path_angle = np.arctan2(path_vec[0]/path_vec[1])
+        pos_vec = p - wp_1
+        CT_vec = np.dot(pos_vec,path_unit)*path_unit
+        CT_mag = np.linalg.norm(CT_vec)
+        
+        if CT_mag > path_mag:
+            wpi += 1
+            return 0; 
+        
         return 0
 
 def controlLoop():
