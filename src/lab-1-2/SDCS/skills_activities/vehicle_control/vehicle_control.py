@@ -30,7 +30,7 @@ import pal.resources.images as images
 # - tf: experiment duration in seconds.
 # - startDelay: delay to give filters time to settle in seconds.
 # - controllerUpdateRate: control update rate in Hz. Shouldn't exceed 500
-tf = 10
+tf = 40
 startDelay = 1
 controllerUpdateRate = 100
 
@@ -38,7 +38,7 @@ controllerUpdateRate = 100
 # - v_ref: desired velocity in m/s
 # - K_p: proportional gain for speed controller
 # - K_i: integral gain for speed controller
-v_ref = 0.5
+v_ref = 0.15
 K_p = 0.26
 K_i = 1.8
 
@@ -47,7 +47,7 @@ K_i = 1.8
 # - K_stanley: K gain for stanley controller
 # - nodeSequence: list of nodes from roadmap. Used for trajectory generation.
 enableSteeringControl = True
-K_stanley = 1
+K_stanley = 0.1
 nodeSequence = [10, 6, 10]
 
 #endregion
@@ -123,23 +123,24 @@ class SteeringController:
         
         pos_vec = p - wp_1 # vector from wp_1 to vehicle, ap
 
-        CT_mag = np.dot(pos_vec,path_unit) # magnitude of closest point on path to vehicle, mag ac
-        CT_vec = CT_mag*path_unit # vector from wp_1 to closest point on path to vehicle, ac
+        ac_mag = np.dot(pos_vec,path_unit) # magnitude of closest point on path to vehicle, mag ac
+        ac_vec = ac_mag*path_unit # vector from wp_1 to closest point on path to vehicle, ac
         
-        if CT_mag > path_mag:
+        if ac_mag > path_mag:
             self.wpi += 1
             return 0; 
-        C_vec = wp_1 + CT_vec # Absolute vector c
-        PC = C_vec - p 
-        CTE_mag = np.linalg.norm(PC) # magnitude of PC/CTE vector
+    
+        c_vec = wp_1 + ac_vec # Absolute vector c
 
-        CTE_heading = np.arctan2(PC[1],PC[0])# heading of CTE vector
-        CTE_heading_error = wrap_to_pi(CTE_heading - path_angle) # heading error of CTE vector
-        CTE = CTE_mag*np.sign(CTE_heading_error) # signed cross track error
+        pc = c_vec - p # this is the CTE vector
+        pc_mag = np.linalg.norm(pc) # magnitude of CTE vector
+        pc_angle = np.arctan(pc[1]/(pc[0]+0.00001))# heading of CTE vector, 0.00001 added to prevent div/0
+
+        # CTE_heading_error = wrap_to_pi(CTE_heading - path_angle) # heading error of CTE vector
+        CTE = pc_mag*np.sign(pc_angle) # signed cross track error
         
-        heading_error = wrap_to_pi(th - path_angle) # heading error of vehicle
-        steering_command = np.clip(heading_error + np.arctan2(speed+0.0001,self.k*CTE), -self.maxSteeringAngle, self.maxSteeringAngle)
-
+        heading_error = wrap_to_pi(path_angle - th) # heading error of vehicle
+        steering_command = np.clip(heading_error + np.arctan2(self.k*CTE, speed+0.00001), -self.maxSteeringAngle, self.maxSteeringAngle)
 
         return steering_command
 
