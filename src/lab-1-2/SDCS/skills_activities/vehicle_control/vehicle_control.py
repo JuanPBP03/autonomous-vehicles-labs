@@ -130,17 +130,19 @@ class SteeringController:
             self.wpi += 1
             return 0; 
     
-        c_vec = wp_1 + ac_vec # Absolute vector c
+        c_vec = wp_1 + ac_vec # global vector c
 
-        pc = c_vec - p # this is the CTE vector
+        pc = c_vec - p # pc is the CTE vector
         pc_mag = np.linalg.norm(pc) # magnitude of CTE vector
         pc_angle = np.arctan(pc[1]/(pc[0]+0.00001))# heading of CTE vector, 0.00001 added to prevent div/0
-
-        # CTE_heading_error = wrap_to_pi(CTE_heading - path_angle) # heading error of CTE vector
         CTE = pc_mag*np.sign(pc_angle) # signed cross track error
         
         heading_error = wrap_to_pi(path_angle - th) # heading error of vehicle
-        steering_command = np.clip(heading_error + np.arctan2(self.k*CTE, speed+0.00001), -self.maxSteeringAngle, self.maxSteeringAngle)
+
+        CTE_steering_angle = np.arctan2(self.k*CTE, speed+0.00001)
+        heading_error_steering_angle = heading_error
+        
+        steering_command = np.clip(heading_error_steering_angle + CTE_steering_angle, -self.maxSteeringAngle, self.maxSteeringAngle)
 
         return steering_command
 
