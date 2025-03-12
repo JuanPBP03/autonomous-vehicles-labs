@@ -38,7 +38,7 @@ controllerUpdateRate = 100
 #   node sequence. If false, the QCar will remain stationary.
 # - v_ref: desired velocity in m/s
 # - nodeSequence: list of nodes from roadmap. Used for trajectory generation.
-enableVehicleControl = True
+enableVehicleControl = False
 v_ref = 0.3
 nodeSequence = [0, 20, 0]
 
@@ -130,15 +130,19 @@ class OccupancyGrid:
         self.phiRes = 1 * np.pi/180
         self.r_max = r_max
         self.r_res = r_res
-
+        
         # Size of polar patch
-        # self.mPolarPatch = np.int_(np.ceil("Fill in your code here"))
-        # self.nPolarPatch = np.int_(np.floor("Fill in your code here"))
+        self.mPolarPatch = np.int_(np.ceil(fov / self.phiRes))
+        self.nPolarPatch = np.int_(np.floor(self.r_max / self.r_res))
 
         self.polarPatch = np.zeros(
             shape = (self.mPolarPatch, self.nPolarPatch),
             dtype = np.float32
         )
+
+        self.l_prior = 0
+        self.l_high = 1
+        self.l_low = 0.5
 
     def update_polar_grid(self, r):
         # Implement code here to populate the values of self.polarPatch
@@ -146,16 +150,16 @@ class OccupancyGrid:
         # - r is a 1D list of length self.mPolarPatch
         # - All range measurements are equally self.phiRes radians apart,
         #   starting with 0
-
+        r = np.clip(r,0,4)
+        print(r)
         r = np.int_(np.round(r / self.r_res))
-
-        ###
+        
         for i in range(self.mPolarPatch):
             if r[i] > 0:
-                pass
-                # "Fill in your code here" = self.l_low
-                # "Fill in your code here" = self.l_high
-                # "Fill in your code here" = self.l_prior
+                print("i = ", i, "r[i] = ", r[i])
+                self.polarPatch[i,0:r[i]-1] = self.l_low
+                self.polarPatch[i,r[i]-1] = self.l_high
+                self.polarPatch[i,r[i]-1:-1] = self.l_prior
             else:
                 self.polarPatch[i,:] = self.l_prior
         ###
@@ -179,12 +183,12 @@ class OccupancyGrid:
         y = np.linspace(-cy, cy, self.nPatch)
         xv, yv = np.meshgrid(x, y)
 
-        # rPatch = (
-        #     np.sqrt("Fill in your code here") / self.r_res
-        # )
-        # phiPatch = (
-        #     wrap_to_2pi("Fill in your code here") / self.phiRes
-        # )
+        rPatch = (
+             np.sqrt((cx-xv)**2+(cy-yv)**2) / self.r_res
+         )
+        phiPatch = (
+             wrap_to_2pi(np.atan2(cx-xv,cx-yv)) / self.phiRes + th
+         )
 
         ndimage.map_coordinates(
             input=self.polarPatch,
