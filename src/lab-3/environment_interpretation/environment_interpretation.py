@@ -38,7 +38,7 @@ controllerUpdateRate = 100
 #   node sequence. If false, the QCar will remain stationary.
 # - v_ref: desired velocity in m/s
 # - nodeSequence: list of nodes from roadmap. Used for trajectory generation.
-enableVehicleControl = False
+enableVehicleControl = True
 v_ref = 0.3
 nodeSequence = [0, 20, 0]
 
@@ -140,9 +140,6 @@ class OccupancyGrid:
             dtype = np.float32
         )
 
-        self.l_prior = 0
-        self.l_high = 1
-        self.l_low = 0.5
 
     def update_polar_grid(self, r):
         # Implement code here to populate the values of self.polarPatch
@@ -150,18 +147,20 @@ class OccupancyGrid:
         # - r is a 1D list of length self.mPolarPatch
         # - All range measurements are equally self.phiRes radians apart,
         #   starting with 0
-        r = np.clip(r,0,4)
-        print(r)
+
         r = np.int_(np.round(r / self.r_res))
         
         for i in range(self.mPolarPatch):
-            if r[i] > 0:
-                print("i = ", i, "r[i] = ", r[i])
-                self.polarPatch[i,0:r[i]-1] = self.l_low
-                self.polarPatch[i,r[i]-1] = self.l_high
-                self.polarPatch[i,r[i]-1:-1] = self.l_prior
+            if r[i] > 80:
+            # For any reading above 4, set the entire row (or relevant slice) to the baseline "free" value.
+                self.polarPatch[i, :] = self.l_low
+            elif r[i] > 0:
+            # Normal case: update the patch
+                self.polarPatch[i, 0 : r[i]] = self.l_low
+                self.polarPatch[i, r[i]:]     = self.l_prior
+                self.polarPatch[i, r[i]-1]    = self.l_high
             else:
-                self.polarPatch[i,:] = self.l_prior
+                self.polarPatch[i, :] = self.l_prior
         ###
 
 
@@ -184,10 +183,11 @@ class OccupancyGrid:
         xv, yv = np.meshgrid(x, y)
 
         rPatch = (
-             np.sqrt((cx-xv)**2+(cy-yv)**2) / self.r_res
+             np.sqrt((xv**2+yv**2)) / self.r_res
          )
         phiPatch = (
-             wrap_to_2pi(np.atan2(cx-xv,cx-yv)) / self.phiRes + th
+             wrap_to_2pi(np.atan2(xv, yv)) / self.phiRes + th
+
          )
 
         ndimage.map_coordinates(
