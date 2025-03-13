@@ -129,7 +129,7 @@ class OccupancyGrid:
         fov = 2*np.pi
         self.phiRes = 1 * np.pi/180
         self.r_max = r_max
-        self.r_res = r_res
+        self.r_res = 0.01
         
         # Size of polar patch
         self.mPolarPatch = np.int_(np.ceil(fov / self.phiRes))
@@ -151,7 +151,7 @@ class OccupancyGrid:
         r = np.int_(np.round(r / self.r_res))
         
         for i in range(self.mPolarPatch):
-            if r[i] > 80:
+            if r[i] > self.nPolarPatch:
             # For any reading above 4, set the entire row (or relevant slice) to the baseline "free" value.
                 self.polarPatch[i, :] = self.l_low
             elif r[i] > 0:
@@ -186,7 +186,7 @@ class OccupancyGrid:
              np.sqrt((xv**2+yv**2)) / self.r_res
          )
         phiPatch = (
-             wrap_to_2pi(np.atan2(xv, yv)) / self.phiRes + th
+             wrap_to_2pi(np.atan2(yv, xv)+th) / self.phiRes
 
          )
 
