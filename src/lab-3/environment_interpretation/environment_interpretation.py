@@ -129,7 +129,7 @@ class OccupancyGrid:
         fov = 2*np.pi
         self.phiRes = 1 * np.pi/180
         self.r_max = r_max
-        self.r_res = 0.01
+        self.r_res = r_res
         
         # Size of polar patch
         self.mPolarPatch = np.int_(np.ceil(fov / self.phiRes))
@@ -149,17 +149,21 @@ class OccupancyGrid:
         #   starting with 0
 
         r = np.int_(np.round(r / self.r_res))
-        
+
         for i in range(self.mPolarPatch):
-            if r[i] > self.nPolarPatch:
-            # For any reading above 4, set the entire row (or relevant slice) to the baseline "free" value.
+            # nPolarPatch is the x dimension of the polarPatch
+            if r[i] >= self.nPolarPatch:
+            # For any reading larger than the length of polarPatch, set the entire row to low probability
                 self.polarPatch[i, :] = self.l_low
             elif r[i] > 0:
-            # Normal case: update the patch
+                # All cells before the reading are set to low probability
                 self.polarPatch[i, 0 : r[i]] = self.l_low
+                # All cells after the reading are set to prior probability
                 self.polarPatch[i, r[i]:]     = self.l_prior
-                self.polarPatch[i, r[i]-1]    = self.l_high
+                # The cell at the position of the reading is set to high probability
+                self.polarPatch[i, r[i]]    = self.l_high
             else:
+                # If the reading was 0, set to prior probability
                 self.polarPatch[i, :] = self.l_prior
         ###
 
@@ -175,21 +179,34 @@ class OccupancyGrid:
     def generate_patch(self, th):
         # Implement Your Solution Here
 
+        # cx and cy represent the coordinates of the car
+        # these two lines calculate the middle x and y coordinates of self.patch
         cx = (self.nPatch * self.cellWidth) / 2
         cy = cx
 
+        # creates a 1D array of x coordinates from the leftmost cell to the rightmost cell 
+        # relative to the center, spaced by self.nPatch
         x = np.linspace(-cx, cx, self.nPatch)
+
+        # creates a 1D array of y coordinates from the bottom cell to the top cell 
+        # relative to the center, spaced by self.nPatch
         y = np.linspace(-cy, cy, self.nPatch)
+
+        # creates a cartesian grid of x and y coordinates centered around the car
         xv, yv = np.meshgrid(x, y)
 
+        # calculates the radial distance to each grid cell
         rPatch = (
              np.sqrt((xv**2+yv**2)) / self.r_res
          )
+        
+        # calculates the angle of each grid cell
         phiPatch = (
              wrap_to_2pi(np.atan2(yv, xv)+th) / self.phiRes
-
          )
 
+        # maps the polar coordinates of polarPatch to rectangular coordinates in patch
+        # using bilinear interpolation
         ndimage.map_coordinates(
             input=self.polarPatch,
             coordinates=[phiPatch, rPatch],
@@ -236,19 +253,21 @@ class OccupancyGrid:
         self.generate_patch(th)
 
         # Update self.map using self.patch
-        # calculate Location of cells to update position offsets
+        # convert xy position of car in map coordinates to map array indices
         iy, jx = self.xy_to_ij(x, y)
 
+        # center patch around ij to find overlap with map
         iTop = np.int_(iy - np.round((self.nPatch-1)/2))
         jLeft = np.int_(jx - np.round((self.nPatch-1)/2))
 
+        # find overlap of map with patch, placing patch[0,0] at map[iTop,jLeft]
         mapSlice, patchSlice = find_overlap(
             self.map,
             self.patch,
             iTop,
             jLeft
         )
-
+        # add the information from the local occupancy grid, patch, to the global grid, map
         self.map[mapSlice] = np.clip(
             (self.map[mapSlice] + self.patch[patchSlice]),
             self.l_min,
