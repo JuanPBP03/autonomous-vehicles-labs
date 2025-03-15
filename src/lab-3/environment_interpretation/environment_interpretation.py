@@ -184,12 +184,12 @@ class OccupancyGrid:
         cx = (self.nPatch * self.cellWidth) / 2
         cy = cx
 
-        # creates a 1D array of x coordinates from the leftmost cell to the rightmost cell 
-        # relative to the center, spaced by self.nPatch
+        # creates a 1D array of evenly spaced x coordinates from the leftmost cell to the rightmost cell 
+        # relative to the center with nPatch being the number of cells from one end to the other
         x = np.linspace(-cx, cx, self.nPatch)
 
-        # creates a 1D array of y coordinates from the bottom cell to the top cell 
-        # relative to the center, spaced by self.nPatch
+        # creates a 1D array of evenly spaced y coordinates from the bottom cell to the top cell 
+        # relative to the center with nPatch being the number of cells from one end to the other
         y = np.linspace(-cy, cy, self.nPatch)
 
         # creates a cartesian grid of x and y coordinates centered around the car
