@@ -89,12 +89,10 @@ class QcarEKF:
         thk = dt*velocity*np.tan(steering)/self.L
 
         return X + np.array([xk, yk, thk])
-        return 
 
     # ==============  SECTION B -  Motion Model Jacobian ====================
     def Jf(self, X, u, dt):
         # Jacobian for the kinematic bicycle model (see self.f)
-        
         
 
 
