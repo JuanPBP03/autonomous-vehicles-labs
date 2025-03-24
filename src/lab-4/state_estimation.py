@@ -82,17 +82,21 @@ class QcarEKF:
         # - u[0] = v (speed in [m/s])
         # - u[1] = delta (steering Angle in [rad])
         # - dt: change in time since last update
-        '''
-        Implement your code here
-        '''
+        velocity = u[0]
+        steering= u[1]
+        xk = dt*u[0] * np.cos(X[2])
+        yk = dt*u[0] * np.sin(X[2])
+        thk = dt*velocity*np.tan(steering)/self.L
 
+        return X + np.array([xk, yk, thk])
+        return 
 
     # ==============  SECTION B -  Motion Model Jacobian ====================
     def Jf(self, X, u, dt):
         # Jacobian for the kinematic bicycle model (see self.f)
-        '''
-        Implement your code here
-        '''
+        
+        
+
 
 
     # ==============  SECTION C -  Motion Model Prediction ====================
