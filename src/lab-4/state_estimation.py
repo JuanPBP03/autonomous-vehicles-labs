@@ -84,29 +84,36 @@ class QcarEKF:
         # - dt: change in time since last update
         velocity = u[0]
         steering= u[1]
-        xk = dt*u[0] * np.cos(X[2])
-        yk = dt*u[0] * np.sin(X[2])
+        xk = dt*velocity*np.cos(X[2].item())
+        yk = dt*velocity*np.sin(X[2].item())
         thk = dt*velocity*np.tan(steering)/self.L
 
-        return X + np.array([xk, yk, thk])
+        return X + np.array([[xk],[yk],[thk]])
 
     # ==============  SECTION B -  Motion Model Jacobian ====================
     def Jf(self, X, u, dt):
         # Jacobian for the kinematic bicycle model (see self.f)
-        
-
-
-
+        print(X)
+        print(u)
+        Jf = np.array([
+            [1,0,-dt*u[0]*np.sin(X[2].item())],
+            [0,1,dt*u[0]*np.cos(X[2].item())],
+            [0,0,1]
+            ])  
+        return Jf
+    
     # ==============  SECTION C -  Motion Model Prediction ====================
     def prediction(self, dt, u):
         
         F = self.Jf(self.xHat, u, dt)
-        self.P = "Implement your code here"
+        print(F)
+        print(self.xHat)
+        self.P = self.P + dt*(F @ self.P + self.P @ F.T) + self.Q
 
         self.xHat = self.f(self.xHat, u, dt)
-
+        print(self.xHat)
         # Wrap th to be in the range of +/- pi
-        self.xHat[2] = wrap_to_pi(self.xHat[2])
+        self.xHat[2] = wrap_to_pi(self.xHat[2].item())
 
 
     # ==============  SECTION D -  Measurement correction ====================
