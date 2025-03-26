@@ -123,6 +123,12 @@ class QcarEKF:
     def correction(self, y):
         
         H = self.C
+
+        zk =  y - H @ self.xHat
+        Sk = H @ self.P @ H.T +self.R
+        K = self.P @ H.T @ np.linalg.inv(Sk)
+        self.xHat = self.xHat + K @ zk 
+        self.P = (self.I - K @ H) @ self.P
         '''
         Implement your code here
 
