@@ -85,18 +85,20 @@ class QcarEKF:
         velocity = u[0]
         steering= u[1]
         theta = X[2].item()
+        # Calculate terms of the prediction matrix
         xk = dt*velocity*np.cos(theta)
         yk = dt*velocity*np.sin(theta)
         thk = dt*velocity*np.tan(steering)/self.L
-
+        # return x,y,theta at k-1 + corresponding terms
         return X + np.array([[xk],[yk],[thk]])
 
     # ==============  SECTION B -  Motion Model Jacobian ====================
     def Jf(self, X, u, dt):
         # Jacobian for the kinematic bicycle model (see self.f)
-       
         velocity = u[0]
         theta = X[2].item()
+        
+        # Calculate jacobian of f
         Jf = np.array([
             [1,0,-dt*velocity*np.sin(theta)],
             [0,1,dt*velocity*np.cos(theta)],
@@ -107,10 +109,13 @@ class QcarEKF:
     # ==============  SECTION C -  Motion Model Prediction ====================
     def prediction(self, dt, u):
         
+        # Since F is non-linear, it is linearized using the jacobian
         F = self.Jf(self.xHat, u, dt)
 
+        # Update covariance matrix
         self.P = F @ self.P @ F.T + self.Q
 
+        # Update state prediction
         self.xHat = self.f(self.xHat, u, dt)
 
         # Wrap th to be in the range of +/- pi
@@ -121,19 +126,16 @@ class QcarEKF:
     def correction(self, y):
         
         H = self.C
-
-        zk =  y - H @ self.xHat
+        # Calculate innovation covariance matrix
         Sk = H @ self.P @ H.T +self.R
+        # Calculate measurement pre-correction
+        zk =  y - H @ self.xHat
+        # Calculate kalman gain
         K = self.P @ H.T @ np.linalg.inv(Sk)
+        
+        # Update state prediciton and covariance matrix
         self.xHat = self.xHat + K @ zk 
         self.P = (self.I - K @ H) @ self.P
-        '''
-        Implement your code here
-
-        Tips:
-        Wrap th in z to be in the range of +/- pi
-        Wrap th in self.xHat for to be in the range of +/- pi
-        '''
 
 
 
