@@ -94,8 +94,7 @@ class QcarEKF:
     # ==============  SECTION B -  Motion Model Jacobian ====================
     def Jf(self, X, u, dt):
         # Jacobian for the kinematic bicycle model (see self.f)
-        # print(X)
-        # print(u)
+       
         velocity = u[0]
         theta = X[2].item()
         Jf = np.array([
@@ -109,9 +108,8 @@ class QcarEKF:
     def prediction(self, dt, u):
         
         F = self.Jf(self.xHat, u, dt)
-        #print(F)
-        #print(self.xHat)
-        self.P = self.P + (F @ self.P + self.P @ F.T) + self.Q
+
+        self.P = F @ self.P @ F.T + self.Q
 
         self.xHat = self.f(self.xHat, u, dt)
 
