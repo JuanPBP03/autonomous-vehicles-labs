@@ -269,7 +269,7 @@ def controlLoop():
 
             # ======= Section For enabling Kalman Filter Estimators =======
             ekf_dr.prediction(dt, [speed_tach, delta])
-            # ekf_gps.prediction(dt, [speed_tach, delta])
+            ekf_gps.prediction(dt, [speed_tach, delta])
             # ekf_sf.prediction(dt, [speed_tach, delta])
             # kf.prediction(dt, th_gyro)
 
